@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -279,5 +279,5 @@ struct SettingRow<Content: View>: View {
 
 #Preview {
     SettingsView()
-        .environment(SpeedometerModel())
+        .environmentObject(SpeedometerModel())
 }

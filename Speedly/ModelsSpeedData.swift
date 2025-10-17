@@ -7,6 +7,8 @@
 
 import Foundation
 import CoreLocation
+import SwiftUI
+import Combine
 
 // MARK: - Speed Data Models
 
@@ -41,12 +43,13 @@ struct GPSAccuracy {
         case .fair: return "Fair (\(Int(horizontalAccuracy))m)"
         case .poor: return "Poor (\(Int(horizontalAccuracy))m)"
         case .unavailable: return "No Signal"
+        case .normal: return "Normal (\(Int(horizontalAccuracy))m)"
         }
     }
 }
 
 enum QualityLevel {
-    case excellent, good, fair, poor, unavailable
+    case excellent, good, fair, poor, unavailable, normal
     
     var color: Color {
         switch self {
@@ -55,19 +58,19 @@ enum QualityLevel {
         case .fair: return .orange
         case .poor: return .red
         case .unavailable: return .gray
+        case .normal: return .blue
         }
     }
 }
 
 // MARK: - Trip Data
 
-@Observable
-class TripData {
-    private(set) var startTime: Date?
-    private(set) var duration: TimeInterval = 0
-    private(set) var distance: Double = 0 // miles
-    private(set) var maxSpeed: Double = 0 // mph
-    private(set) var speedSamples: [Double] = []
+class TripData: ObservableObject {
+    @Published private(set) var startTime: Date?
+    @Published private(set) var duration: TimeInterval = 0
+    @Published private(set) var distance: Double = 0 // miles
+    @Published private(set) var maxSpeed: Double = 0 // mph
+    @Published private(set) var speedSamples: [Double] = []
     
     var averageSpeed: Double {
         guard !speedSamples.isEmpty else { return 0 }
@@ -122,7 +125,7 @@ struct SpeedLimitInfo {
     let detectedAt: Date
 }
 
-enum SpeedLimitSource {
+enum SpeedLimitSource: Equatable {
     case openStreetMap
     case appleRoadData
     case userSet

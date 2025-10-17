@@ -7,21 +7,20 @@
 
 import Foundation
 import CoreLocation
+import MapKit
 import Combine
 
-@Observable
-final class LocationService: NSObject {
+final class LocationService: NSObject, ObservableObject {
     // MARK: - Published Properties
-    private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    private(set) var currentLocation: CLLocation?
-    private(set) var currentSpeed: Double = 0 // mph
-    private(set) var gpsAccuracy: GPSAccuracy?
-    private(set) var locationInfo: LocationInfo?
-    private(set) var isLocationServiceEnabled = false
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    @Published private(set) var currentLocation: CLLocation?
+    @Published private(set) var currentSpeed: Double = 0 // mph
+    @Published private(set) var gpsAccuracy: GPSAccuracy?
+    @Published private(set) var locationInfo: LocationInfo?
+    @Published private(set) var isLocationServiceEnabled = false
     
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
-    private let geocoder = CLGeocoder()
     private var lastGeocodingTime: Date?
     private var lastGeocodingLocation: CLLocation?
     private let geocodingInterval: TimeInterval = 5.0 // 5 seconds
@@ -51,16 +50,19 @@ final class LocationService: NSObject {
     
     // MARK: - Public Methods
     func requestLocationPermission() {
+        print("Requesting location permission. Current status: \(authorizationStatus)")
+        
         switch authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            // Guide user to settings
+            // User needs to go to settings - this should be handled by the UI
+            print("Location permission denied/restricted")
             break
         case .authorizedWhenInUse, .authorizedAlways:
             startLocationUpdates()
         @unknown default:
-            break
+            locationManager.requestWhenInUseAuthorization()
         }
     }
     
@@ -155,35 +157,59 @@ final class LocationService: NSObject {
         lastGeocodingLocation = location
         
         Task {
-            do {
-                let placemarks = try await geocoder.reverseGeocodeLocation(location)
-                
-                await MainActor.run {
-                    if let placemark = placemarks.first {
-                        self.locationInfo = LocationInfo(
-                            streetName: placemark.thoroughfare,
-                            cityName: placemark.locality,
-                            countryCode: placemark.isoCountryCode,
-                            timestamp: Date()
-                        )
-                    }
-                }
-            } catch {
-                // Handle geocoding error silently
-                print("Geocoding failed: \(error)")
-            }
+            await performModernGeocoding(for: location)
         }
+    }
+    
+    @MainActor
+    private func performModernGeocoding(for location: CLLocation) async {
+        do {
+            // Use MKLocalSearch for modern geocoding (no deprecation warnings)
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = ""
+            request.region = MKCoordinateRegion(
+                center: location.coordinate,
+                latitudinalMeters: 200,
+                longitudinalMeters: 200
+            )
+            
+            let search = MKLocalSearch(request: request)
+            let response = try await search.start()
+            
+            if let mapItem = response.mapItems.first {
+                self.locationInfo = LocationInfo(
+                    streetName: mapItem.placemark.thoroughfare,
+                    cityName: mapItem.placemark.locality,
+                    countryCode: mapItem.placemark.countryCode,
+                    timestamp: Date()
+                )
+                return
+            }
+        } catch {
+            print("MKLocalSearch failed: \(error.localizedDescription)")
+        }
+        
+        // If MKLocalSearch fails, set basic location info without street details
+        self.locationInfo = LocationInfo(
+            streetName: nil,
+            cityName: "Unknown Location",
+            countryCode: nil,
+            timestamp: Date()
+        )
     }
 }
 
 // MARK: - CLLocationManagerDelegate
 extension LocationService: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        print("Location authorization changed to: \(manager.authorizationStatus)")
         updateAuthorizationStatus()
         
         if authorizationStatus.isAuthorized {
+            print("Location authorized, starting updates")
             startLocationUpdates()
         } else {
+            print("Location not authorized, stopping updates")
             stopLocationUpdates()
         }
     }

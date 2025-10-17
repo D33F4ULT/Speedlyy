@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SpeedLimitEditorView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @Environment(\.dismiss) private var dismiss
     @State private var speedLimitText = ""
     @FocusState private var isTextFieldFocused: Bool
@@ -162,7 +162,7 @@ struct SpeedLimitEditorView: View {
 // MARK: - Preset Speed Limits
 
 struct PresetSpeedLimitsView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @Binding var speedLimitText: String
     
     private var presetLimits: [Int] {
@@ -209,5 +209,5 @@ struct PresetSpeedLimitsView: View {
 
 #Preview {
     SpeedLimitEditorView()
-        .environment(SpeedometerModel())
+        .environmentObject(SpeedometerModel())
 }

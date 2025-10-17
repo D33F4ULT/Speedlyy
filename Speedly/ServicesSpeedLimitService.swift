@@ -7,10 +7,10 @@
 
 import Foundation
 import CoreLocation
+import Combine
 
-@Observable
-final class SpeedLimitService {
-    private(set) var currentSpeedLimit: SpeedLimitInfo?
+final class SpeedLimitService: ObservableObject {
+    @Published private(set) var currentSpeedLimit: SpeedLimitInfo?
     
     private let session = URLSession.shared
     private var lastQueryTime: Date?

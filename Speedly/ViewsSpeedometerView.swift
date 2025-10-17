@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SpeedometerView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var orientation = UIDevice.current.orientation
     
@@ -42,7 +42,7 @@ struct SpeedometerView: View {
 
 // MARK: - Portrait Layout
 struct PortraitSpeedometerView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @State private var showSpeedLimitEditor = false
     
     var body: some View {
@@ -81,14 +81,14 @@ struct PortraitSpeedometerView: View {
         .scrollIndicators(.hidden)
         .sheet(isPresented: $showSpeedLimitEditor) {
             SpeedLimitEditorView()
-                .environment(model)
+                .environmentObject(model)
         }
     }
 }
 
 // MARK: - Landscape Layout
 struct LandscapeSpeedometerView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @State private var speedSize: Double = 1.0
     @State private var showSpeedLimitEditor = false
     
@@ -118,7 +118,7 @@ struct LandscapeSpeedometerView: View {
         }
         .sheet(isPresented: $showSpeedLimitEditor) {
             SpeedLimitEditorView()
-                .environment(model)
+                .environmentObject(model)
         }
     }
     
@@ -135,7 +135,7 @@ struct LandscapeSpeedometerView: View {
 
 // MARK: - Speed Display Component
 struct SpeedDisplayView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     let sizeMultiplier: Double
     
     init(sizeMultiplier: Double = 1.0) {
@@ -227,7 +227,7 @@ struct AddSpeedLimitButton: View {
 
 // MARK: - Information Cards
 struct InformationCardsView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     
     var body: some View {
         VStack(spacing: 12) {
@@ -305,7 +305,7 @@ struct InfoCardView: View {
 
 // MARK: - Trip Stats
 struct TripStatsView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     
     private var maxSpeed: Double {
         model.settings.speedUnit.convert(speedInMph: model.currentTrip.maxSpeed)
@@ -410,5 +410,5 @@ private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
 
 #Preview {
     SpeedometerView()
-        .environment(SpeedometerModel())
+        .environmentObject(SpeedometerModel())
 }

@@ -9,7 +9,7 @@ import SwiftUI
 import UIKit
 
 struct TripSummaryView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
     @Environment(\.dismiss) private var dismiss
     
     private var maxSpeed: Double {
@@ -297,5 +297,5 @@ struct DetailRow: View {
 
 #Preview {
     TripSummaryView()
-        .environment(SpeedometerModel())
+        .environmentObject(SpeedometerModel())
 }

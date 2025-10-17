@@ -9,18 +9,21 @@ import Foundation
 import SwiftUI
 import AudioToolbox
 import CoreLocation
+import Combine
 
-@Observable
-final class SpeedometerModel {
+final class SpeedometerModel: ObservableObject {
     // MARK: - Services
-    private let locationService = LocationService()
-    private let speedLimitService = SpeedLimitService()
+    @ObservedObject private var locationService = LocationService()
+    @ObservedObject private var speedLimitService = SpeedLimitService()
     
     // MARK: - User Settings
-    let settings = UserSettings()
+    @ObservedObject var settings = UserSettings()
     
     // MARK: - Trip Data
-    let currentTrip = TripData()
+    @ObservedObject var currentTrip = TripData()
+    
+    // MARK: - Published Properties that trigger UI updates
+    @Published var needsUpdate = false // Helper to trigger view updates
     
     // MARK: - Computed Properties
     var currentSpeed: Double {
@@ -87,6 +90,7 @@ final class SpeedometerModel {
     }
     
     // MARK: - Private Properties
+    private var cancellables = Set<AnyCancellable>()
     private var lastExceedingState = false
     private var lastLocation: CLLocation?
     private var speedLimitUpdateTask: Task<Void, Never>?
@@ -94,6 +98,23 @@ final class SpeedometerModel {
     // MARK: - Initialization
     init() {
         setupObservation()
+        
+        // Set up bindings to observe changes in services
+        locationService.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
+        
+        speedLimitService.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
+        
+        settings.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
+        
+        currentTrip.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
     }
     
     // MARK: - Public Methods

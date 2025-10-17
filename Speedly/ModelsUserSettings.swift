@@ -6,21 +6,172 @@
 //
 
 import SwiftUI
+import Combine
 
-@Observable
-class UserSettings {
-    @AppStorage("speed_unit") var speedUnit: SpeedUnit = .metric
-    @AppStorage("show_street_name") var showStreetName = true
-    @AppStorage("show_trip_stats") var showTripStats = true
-    @AppStorage("enable_haptics") var enableHaptics = true
-    @AppStorage("enable_sound_alerts") var enableSoundAlerts = true
-    @AppStorage("speed_smoothing") var speedSmoothing: Double = 0.3
-    @AppStorage("color_theme") var colorTheme: ColorTheme = .dynamic
-    @AppStorage("manual_speed_limit") var manualSpeedLimit: Int = 0
-    @AppStorage("speed_limit_alerts") var speedLimitAlerts = true
+final class UserSettings: ObservableObject {
+    private let userDefaults = UserDefaults.standard
+    
+    // MARK: - Manual Published Properties to avoid conflicts
+    
+    private var _speedUnit: SpeedUnit = .metric {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_speedUnit.rawValue, forKey: "speed_unit")
+        }
+    }
+    
+    var speedUnit: SpeedUnit {
+        get { _speedUnit }
+        set { _speedUnit = newValue }
+    }
+    
+    private var _showStreetName: Bool = true {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_showStreetName, forKey: "show_street_name")
+        }
+    }
+    
+    var showStreetName: Bool {
+        get { _showStreetName }
+        set { _showStreetName = newValue }
+    }
+    
+    private var _showTripStats: Bool = true {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_showTripStats, forKey: "show_trip_stats")
+        }
+    }
+    
+    var showTripStats: Bool {
+        get { _showTripStats }
+        set { _showTripStats = newValue }
+    }
+    
+    private var _enableHaptics: Bool = true {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_enableHaptics, forKey: "enable_haptics")
+        }
+    }
+    
+    var enableHaptics: Bool {
+        get { _enableHaptics }
+        set { _enableHaptics = newValue }
+    }
+    
+    private var _enableSoundAlerts: Bool = true {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_enableSoundAlerts, forKey: "enable_sound_alerts")
+        }
+    }
+    
+    var enableSoundAlerts: Bool {
+        get { _enableSoundAlerts }
+        set { _enableSoundAlerts = newValue }
+    }
+    
+    private var _speedSmoothing: Double = 0.3 {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_speedSmoothing, forKey: "speed_smoothing")
+        }
+    }
+    
+    var speedSmoothing: Double {
+        get { _speedSmoothing }
+        set { _speedSmoothing = newValue }
+    }
+    
+    private var _colorTheme: ColorTheme = .dynamic {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_colorTheme.rawValue, forKey: "color_theme")
+        }
+    }
+    
+    var colorTheme: ColorTheme {
+        get { _colorTheme }
+        set { _colorTheme = newValue }
+    }
+    
+    private var _manualSpeedLimit: Int = 0 {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_manualSpeedLimit, forKey: "manual_speed_limit")
+        }
+    }
+    
+    var manualSpeedLimit: Int {
+        get { _manualSpeedLimit }
+        set { _manualSpeedLimit = newValue }
+    }
+    
+    private var _speedLimitAlerts: Bool = true {
+        didSet {
+            objectWillChange.send()
+            userDefaults.set(_speedLimitAlerts, forKey: "speed_limit_alerts")
+        }
+    }
+    
+    var speedLimitAlerts: Bool {
+        get { _speedLimitAlerts }
+        set { _speedLimitAlerts = newValue }
+    }
+    
+    init() {
+        loadSettings()
+    }
+    
+    private func loadSettings() {
+        // Load speed unit
+        if let rawValue = userDefaults.string(forKey: "speed_unit"),
+           let unit = SpeedUnit(rawValue: rawValue) {
+            _speedUnit = unit
+        }
+        
+        // Load boolean settings
+        if userDefaults.object(forKey: "show_street_name") != nil {
+            _showStreetName = userDefaults.bool(forKey: "show_street_name")
+        }
+        
+        if userDefaults.object(forKey: "show_trip_stats") != nil {
+            _showTripStats = userDefaults.bool(forKey: "show_trip_stats")
+        }
+        
+        if userDefaults.object(forKey: "enable_haptics") != nil {
+            _enableHaptics = userDefaults.bool(forKey: "enable_haptics")
+        }
+        
+        if userDefaults.object(forKey: "enable_sound_alerts") != nil {
+            _enableSoundAlerts = userDefaults.bool(forKey: "enable_sound_alerts")
+        }
+        
+        if userDefaults.object(forKey: "speed_limit_alerts") != nil {
+            _speedLimitAlerts = userDefaults.bool(forKey: "speed_limit_alerts")
+        }
+        
+        // Load double setting
+        if userDefaults.object(forKey: "speed_smoothing") != nil {
+            _speedSmoothing = userDefaults.double(forKey: "speed_smoothing")
+        }
+        
+        // Load color theme
+        if let rawValue = userDefaults.string(forKey: "color_theme"),
+           let theme = ColorTheme(rawValue: rawValue) {
+            _colorTheme = theme
+        }
+        
+        // Load integer setting
+        if userDefaults.object(forKey: "manual_speed_limit") != nil {
+            _manualSpeedLimit = userDefaults.integer(forKey: "manual_speed_limit")
+        }
+    }
 }
 
-enum SpeedUnit: String, CaseIterable {
+enum SpeedUnit: String, CaseIterable, Codable {
     case metric = "kmh"
     case imperial = "mph"
     
@@ -60,7 +211,7 @@ enum SpeedUnit: String, CaseIterable {
     }
 }
 
-enum ColorTheme: String, CaseIterable {
+enum ColorTheme: String, CaseIterable, Codable {
     case dynamic = "dynamic"
     case white = "white"
     case blue = "blue"

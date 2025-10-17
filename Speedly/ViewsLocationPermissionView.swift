@@ -9,16 +9,17 @@ import SwiftUI
 import CoreLocation
 
 struct LocationPermissionView: View {
-    @Environment(SpeedometerModel.self) private var model
+    @EnvironmentObject private var model: SpeedometerModel
+    @State private var debugInfo = ""
     
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
             
             // Icon
-            Image(systemName: "location.circle.fill")
+            Image(systemName: iconName)
                 .font(.system(size: 80))
-                .foregroundStyle(.blue)
+                .foregroundStyle(iconColor)
             
             // Title and Description
             VStack(spacing: 16) {
@@ -32,6 +33,15 @@ struct LocationPermissionView: View {
                     .foregroundStyle(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
+                
+                // Debug info (remove in production)
+                if !debugInfo.isEmpty {
+                    Text("Debug: \(debugInfo)")
+                        .font(.caption)
+                        .foregroundStyle(.yellow)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
             }
             
             // Action Button
@@ -49,9 +59,33 @@ struct LocationPermissionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+        .onAppear {
+            updateDebugInfo()
+        }
+        .onChange(of: model.locationAuthorizationStatus) { _, _ in
+            updateDebugInfo()
+        }
     }
     
     // MARK: - Computed Properties
+    
+    private var iconName: String {
+        switch model.locationAuthorizationStatus {
+        case .notDetermined: return "location.circle"
+        case .denied, .restricted: return "location.slash"
+        case .authorizedWhenInUse, .authorizedAlways: return "location.circle.fill"
+        @unknown default: return "location.circle"
+        }
+    }
+    
+    private var iconColor: Color {
+        switch model.locationAuthorizationStatus {
+        case .notDetermined: return .blue
+        case .denied, .restricted: return .red
+        case .authorizedWhenInUse, .authorizedAlways: return .green
+        @unknown default: return .blue
+        }
+    }
     
     private var permissionDescription: String {
         switch model.locationAuthorizationStatus {
@@ -87,20 +121,29 @@ struct LocationPermissionView: View {
     
     // MARK: - Actions
     
+    private func updateDebugInfo() {
+        debugInfo = "Status: \(model.locationAuthorizationStatus)"
+    }
+    
     private func handlePermissionAction() {
+        print("Permission button tapped. Current status: \(model.locationAuthorizationStatus)")
+        
         switch model.locationAuthorizationStatus {
         case .notDetermined:
+            print("Requesting location permission...")
             model.requestLocationPermission()
             
         case .denied, .restricted:
+            print("Opening settings...")
             openAppSettings()
             
         case .authorizedWhenInUse, .authorizedAlways:
             // This shouldn't normally happen as the view should switch automatically
-            // But we can handle it gracefully
+            print("Already authorized, this shouldn't happen")
             break
             
         @unknown default:
+            print("Unknown status, requesting permission...")
             model.requestLocationPermission()
         }
     }
@@ -117,5 +160,5 @@ struct LocationPermissionView: View {
 
 #Preview {
     LocationPermissionView()
-        .environment(SpeedometerModel())
+        .environmentObject(SpeedometerModel())
 }
